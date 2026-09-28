@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Creative Coding — Li June Choi</title>
+<meta name="description" content="Four browser-based type generators by Li June Choi: Fold, Ink Type, Grow a Typeface and Noodle Type Lab.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2EFE8; --ink:#151412; --soft:#3D3A34; --dim:#8A8478; --rule:#151412; --accent:#C23A20; --hover:#C23A20;
+  --serif:'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --sans:'Geist', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --mono:'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --pad:clamp(20px, 4.45vw, 64px);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#1A1916; --ink:#F2EFE8; --soft:#C9C3B6; --dim:#7D776C; --rule:#F2EFE8; --accent:#F0674A; --hover:#F0674A; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#1A1916; --ink:#F2EFE8; --soft:#C9C3B6; --dim:#7D776C; --rule:#F2EFE8; --accent:#F0674A; --hover:#F0674A; color-scheme:dark; }
+html{ scroll-padding-top:env(safe-area-inset-top, 0px); background:var(--bg); }
+*,*::before,*::after{ box-sizing:border-box; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+a{ color:inherit; text-decoration:none; }
+a:hover{ color:var(--hover); }
+a:focus-visible{ outline:2px solid var(--accent); outline-offset:4px; }
+.sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+.page{ max-width:1440px; margin:0 auto; padding:40px var(--pad) 56px; display:flex; flex-direction:column; gap:64px; }
+header{ display:flex; justify-content:space-between; align-items:baseline; gap:20px; flex-wrap:wrap; font-family:var(--mono); font-size:13px; letter-spacing:0.04em; text-transform:uppercase; }
+header .home{ font-weight:500; }
+header nav{ display:flex; gap:32px; flex-wrap:wrap; }
+
+.intro{ display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); column-gap:24px; align-items:end; }
+.eyebrow{ grid-column:span 12; font-family:var(--mono); font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); margin-bottom:16px; }
+.intro h1{ grid-column:span 8; margin:0; font-family:var(--serif); font-weight:400; font-size:clamp(40px, 4.45vw, 64px); line-height:1.02; letter-spacing:-0.02em; }
+.intro p{ grid-column:10 / span 3; margin:0; font-size:15px; line-height:1.55; color:var(--soft); }
+
+.list{ display:flex; flex-direction:column; border-top:1px solid var(--rule); }
+.row{ display:flex; align-items:flex-start; gap:24px; padding:24px 0; border-bottom:1px solid var(--rule); color:var(--ink); transition:color 200ms ease; }
+.row:hover{ color:var(--ink); }
+.num{ width:40px; flex-shrink:0; padding-top:10px; font-family:var(--mono); font-size:13px; }
+.info{ width:420px; flex-shrink:0; display:flex; flex-direction:column; gap:14px; }
+.title{ font-family:var(--serif); font-size:64px; line-height:1; letter-spacing:-0.02em; }
+.desc{ font-size:15px; line-height:1.45; color:var(--soft); max-width:340px; }
+.meta{ font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; }
+.prevs{ flex-grow:1; min-width:0; display:flex; gap:16px; justify-content:flex-end; }
+.list.has-active .row{ color:var(--dim); }
+.list .row.is-active{ color:var(--accent); }
+.row.is-active .title{ font-style:italic; }
+.strip{ display:none; }
+.note{ margin:0; font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:#6B665D; }
+
+/* preview windows: drawn at 300×216, scaled to fit */
+.pv{ flex:0 1 255px; min-width:0; aspect-ratio:300 / 216; position:relative; }
+.win{ position:absolute; left:0; top:0; width:300px; height:216px; transform:scale(var(--s, 0.85)); transform-origin:0 0; overflow:hidden; border-radius:8px; border:1px solid rgba(21,20,18,0.18); display:flex; flex-direction:column; font-family:var(--sans); color:#151412; }
+.bar{ height:22px; flex-shrink:0; display:flex; align-items:center; gap:5px; padding:0 9px; background:#E4E0D7; border-bottom:1px solid rgba(21,20,18,0.12); }
+.bar i{ width:7px; height:7px; border-radius:50%; background:#C9C3B6; }
+.url{ margin-left:8px; flex-grow:1; height:13px; border-radius:4px; background:#F5F2EC; font-family:var(--mono); font-size:8px; line-height:13px; padding:0 6px; color:#4A463F; white-space:nowrap; overflow:hidden; }
+.wb{ flex-grow:1; padding:10px 12px; display:flex; flex-direction:column; gap:6px; overflow:hidden; }
+.b-t{ font-family:var(--serif); font-size:22px; line-height:1; }
+.b-l{ font-family:var(--mono); font-size:8px; text-transform:uppercase; letter-spacing:0.08em; color:#4A463F; }
+.b-svg{ display:block; border-radius:4px; }
+.b-s{ display:flex; align-items:center; gap:8px; }
+.b-s > span:first-child{ width:74px; flex-shrink:0; font-size:8.5px; color:#2E2B26; }
+.trk{ flex-grow:1; height:3px; border-radius:2px; background:rgba(21,20,18,0.14); position:relative; }
+.trk b{ position:absolute; left:0; top:0; bottom:0; border-radius:2px; }
+.trk em{ position:absolute; top:-3px; width:9px; height:9px; margin-left:-4px; border-radius:50%; background:#FFFFFF; border:1.5px solid; }
+.b-b{ display:flex; gap:5px; flex-wrap:wrap; }
+.b-b span{ font-size:8.5px; padding:3px 8px; border-radius:999px; border:1px solid; white-space:nowrap; }
+
+/* letter cards */
+.lc{ width:190px; height:250px; overflow:hidden; border-radius:4px; position:relative; }
+.lc svg{ position:absolute; left:0; top:0; }
+.lc span{ position:absolute; left:12px; bottom:10px; font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:#151412; }
+.fan{ position:fixed; left:0; top:0; width:0; height:0; z-index:40; pointer-events:none; }
+.card{ position:absolute; left:0; top:0; opacity:0; transition:opacity 260ms ease; will-change:transform; }
+.fan.on .card{ opacity:1; }
+.card .lc{ position:absolute; left:-95px; top:-150px; box-shadow:0 18px 40px rgba(21,20,18,0.22); transform-origin:50% 170%; transform:rotate(0deg) scale(0.6); transition:transform 480ms cubic-bezier(.2,.8,.2,1); }
+
+@media (max-width: 1200px){
+  .info{ width:320px; }
+  .title{ font-size:52px; }
+}
+@media (max-width: 960px){
+  .intro h1{ grid-column:1 / -1; }
+  .intro p{ grid-column:1 / span 8; margin-top:20px; }
+  .row{ flex-wrap:wrap; }
+  .info{ width:auto; flex:1 1 0; min-width:240px; }
+  .prevs{ flex-basis:100%; padding-left:64px; justify-content:flex-start; }
+}
+@media (hover: none), (pointer: coarse){
+  .fan{ display:none; }
+  .list.has-active .row{ color:var(--ink); }
+  .strip{ display:flex; flex-basis:100%; gap:10px; overflow-x:auto; padding-left:64px; scroll-snap-type:x mandatory; }
+  .mini{ flex:0 0 96px; height:126px; position:relative; overflow:hidden; border-radius:3px; scroll-snap-align:start; }
+  .mini .lc{ position:absolute; left:0; top:0; transform:scale(0.505); transform-origin:0 0; }
+}
+@media (max-width: 640px){
+  .page{ gap:48px; padding-top:28px; }
+  header nav{ gap:20px; }
+  .intro p{ grid-column:1 / -1; }
+  .title{ font-size:48px; }
+  .num{ padding-top:6px; width:auto; }
+  .prevs, .strip{ padding-left:0; }
+  .prevs{ overflow-x:auto; scroll-snap-type:x mandatory; margin-right:calc(var(--pad) * -1); padding-right:var(--pad); }
+  .pv{ flex:0 0 78%; scroll-snap-align:start; }
+}
+@media (prefers-reduced-motion: reduce){
+  .card .lc{ transition:none; }
+  .row{ transition:none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<a class="home" href="https://draftlijune.cargo.site/">← Li June Choi</a>
+<nav aria-label="Main">
+<a href="https://draftlijune.cargo.site/">Work</a>
+<a href="https://draftlijune.cargo.site/cv">About</a>
+<a href="mailto:lijune.choi@gmail.com">Email</a>
+</nav>
+</header>
+
+<section class="intro">
+<div class="eyebrow">Creative Coding</div>
+<h1>Tools that fold, grow, spill and stretch <em>letterforms.</em></h1>
+<p>Four browser-based type generators. Each one lets you draw or type letters, play with the system behind them, and export the result.</p>
+</section>
+
+<section aria-label="Type tools">
+<div class="list" id="list"></div>
+</section>
+
+<p class="note">Hover a tool to fan out letters made with it · click to open it live</p>
+</div>
+<div class="fan" id="fan" aria-hidden="true"></div>
+
+<script>
+(function(){
+var LETTER_SETS;
+function buildSets(){
+
+    const S = {
+      A: [[0,6,0,2],[0,2,2,0],[2,0,4,2],[4,2,4,6],[0,3,4,3]],
+      D: [[0,0,0,6],[0,6,3,6],[3,6,4,5],[4,5,4,1],[4,1,3,0],[3,0,0,0]],
+      E: [[4,0,0,0],[0,0,0,6],[0,6,4,6],[0,3,3,3]],
+      F: [[0,0,0,6],[0,0,4,0],[0,3,3,3]],
+      G: [[4,1,3,0],[3,0,1,0],[1,0,0,1],[0,1,0,5],[0,5,1,6],[1,6,3,6],[3,6,4,5],[4,5,4,3],[4,3,2,3]],
+      I: [[2,0,2,6],[1,0,3,0],[1,6,3,6]],
+      K: [[0,0,0,6],[4,0,0,4],[1,3,4,6]],
+      L: [[0,0,0,6],[0,6,4,6]],
+      N: [[0,6,0,0],[0,0,4,6],[4,6,4,0]],
+      O: [[1,0,3,0],[3,0,4,1],[4,1,4,5],[4,5,3,6],[3,6,1,6],[1,6,0,5],[0,5,0,1],[0,1,1,0]],
+      P: [[0,6,0,0],[0,0,3,0],[3,0,4,1],[4,1,4,2],[4,2,3,3],[3,3,0,3]],
+      R: [[0,6,0,0],[0,0,3,0],[3,0,4,1],[4,1,4,2],[4,2,3,3],[3,3,0,3],[2,3,4,6]],
+      T: [[0,0,4,0],[2,0,2,6]],
+      W: [[0,0,1,6],[1,6,2,3],[2,3,3,6],[3,6,4,0]],
+      Y: [[0,0,2,3],[4,0,2,3],[2,3,2,6]]
+    };
+    const rng = (seed) => { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; };
+    const f1 = (n) => (+n).toFixed(1);
+    const P = (d, stroke, width, extra) => Object.assign({ d, stroke, width: width + 'px', fill: 'none', dash: 'none', cap: 'round', opacity: 1 }, extra || {});
+    const dot = (x, y) => 'M' + f1(x) + ' ' + f1(y) + ' h0.01';
+    const box = (x, y, w, h) => 'M' + f1(x) + ' ' + f1(y) + ' h' + f1(w) + ' v' + f1(h) + ' h' + f1(-w) + ' z';
+
+    const fold = (ch, x0, y0, u) => {
+      const X = (g) => x0 + g * u, Y = (g) => y0 + g * u, w = u * 0.7, out = [];
+      S[ch].forEach(([a, b, c, d]) => out.push(P('M' + f1(X(a) + u * 0.15) + ' ' + f1(Y(b) + u * 0.2) + ' L' + f1(X(c) + u * 0.15) + ' ' + f1(Y(d) + u * 0.2), 'rgba(21,20,18,0.25)', w + 1, { cap: 'square' })));
+      S[ch].forEach(([a, b, c, d]) => {
+        const l = 'M' + f1(X(a)) + ' ' + f1(Y(b)) + ' L' + f1(X(c)) + ' ' + f1(Y(d));
+        const dash = f1(u * 0.18) + ' ' + f1(u * 0.25);
+        out.push(P(l, '#F7F2E8', w, { cap: 'square' }));
+        out.push(P(l, '#C4B8A2', w, { cap: 'butt', dash }));
+      });
+      return out;
+    };
+    const ink = (ch, x0, y0, u, r) => {
+      const X = (g) => x0 + g * u, Y = (g) => y0 + g * u, out = [], k2 = u / 30;
+      S[ch].forEach(([a, b, c, d]) => {
+        const x1 = X(a), y1 = Y(b), x2 = X(c), y2 = Y(d);
+        const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+        for (let k = 0; k < 2; k++) {
+          const o1 = (r() - 0.5) * 60 * k2, o2 = (r() - 0.5) * 60 * k2;
+          out.push(P('M' + f1(x1) + ' ' + f1(y1) + ' C' + f1(x1 + dx * 0.3 + nx * o1) + ' ' + f1(y1 + dy * 0.3 + ny * o1) + ' ' + f1(x1 + dx * 0.7 + nx * o2) + ' ' + f1(y1 + dy * 0.7 + ny * o2) + ' ' + f1(x2) + ' ' + f1(y2), '#1C1B29', k === 0 ? Math.max(1.2, 3.2 * k2) : 0.8, { opacity: k === 0 ? 0.9 : 0.5 }));
+        }
+        if (r() > 0.5) {
+          const t = r(), rr = (4 + r() * 7) * k2;
+          out.push(P('M' + f1(x1 + dx * t) + ' ' + f1(y1 + dy * t) + ' a' + f1(rr) + ' ' + f1(rr) + ' 0 1 1 0.1 0', '#1C1B29', 1, { opacity: 0.7 }));
+        }
+      });
+      return out;
+    };
+    const grow = (ch, x0, y0, u, r, sprouts) => {
+      const X = (g) => x0 + g * u, Y = (g) => y0 + g * u, out = [], pts = {}, k2 = u / 30;
+      S[ch].forEach(([a, b, c, d]) => {
+        out.push(P('M' + f1(X(a)) + ' ' + f1(Y(b)) + ' L' + f1(X(c)) + ' ' + f1(Y(d)), '#2F4A2A', Math.max(1.2, 3 * k2)));
+        pts[a + ',' + b] = [X(a), Y(b)]; pts[c + ',' + d] = [X(c), Y(d)];
+      });
+      Object.values(pts).forEach(([x, y]) => {
+        if (sprouts) {
+          const n = 1 + Math.floor(r() * 3);
+          for (let k = 0; k < n; k++) {
+            const ang = r() * Math.PI * 2, L = (12 + r() * 18) * k2;
+            const ex = x + Math.cos(ang) * L, ey = y + Math.sin(ang) * L;
+            out.push(P('M' + f1(x) + ' ' + f1(y) + ' Q' + f1(x + Math.cos(ang + 0.6) * L * 0.6) + ' ' + f1(y + Math.sin(ang + 0.6) * L * 0.6) + ' ' + f1(ex) + ' ' + f1(ey), '#4E7A3E', 1));
+            out.push(P(dot(ex, ey), '#78AE5E', Math.max(3, 7 * k2)));
+          }
+        }
+        out.push(P(dot(x, y), '#2F4A2A', Math.max(3, 8 * k2)));
+      });
+      return out;
+    };
+    const noodle = (ch, x0, y0, u, r, dots) => {
+      const X = (g) => x0 + g * u, Y = (g) => y0 + g * u, out = [], k2 = u / 30;
+      if (dots) for (let gx = 0; gx < 5; gx++) for (let gy = 0; gy < 7; gy++) out.push(P(dot(X(gx), Y(gy)), '#B89A6A', Math.max(2, 4 * k2)));
+      S[ch].forEach(([a, b, c, d]) => {
+        const x1 = X(a), y1 = Y(b), x2 = X(c), y2 = Y(d), len = Math.hypot(x2 - x1, y2 - y1);
+        const q = 'M' + f1(x1) + ' ' + f1(y1) + ' Q' + f1((x1 + x2) / 2) + ' ' + f1((y1 + y2) / 2 + (8 + r() * 6) * k2 + len * 0.12) + ' ' + f1(x2) + ' ' + f1(y2);
+        out.push(P(q, '#8C6A2E', Math.max(2.5, 11 * k2)));
+        out.push(P(q, '#E8B95A', Math.max(1.8, 8 * k2)));
+      });
+      return out;
+    };
+    const word = (fn, text, x0, y0, u, gap, r, flag) => {
+      let out = [];
+      text.split('').forEach((ch, i) => { out = out.concat(fn(ch, x0 + i * (4 * u + gap), y0, u, r, flag)); });
+      return out;
+    };
+    const cellLetter = (ch, x0, y0, cs) => {
+      const cells = {}, out = [];
+      for (let gx = 0; gx < 5; gx++) for (let gy = 0; gy < 7; gy++) out.push(P(box(x0 + gx * cs, y0 + gy * cs, cs, cs), 'rgba(28,27,41,0.14)', 0.6));
+      S[ch].forEach(([a, b, c, d]) => {
+        const n = Math.max(Math.abs(c - a), Math.abs(d - b));
+        for (let t = 0; t <= n; t++) cells[Math.round(a + (c - a) * t / (n || 1)) + ',' + Math.round(b + (d - b) * t / (n || 1))] = 1;
+      });
+      Object.keys(cells).forEach((k) => { const [gx, gy] = k.split(',').map(Number); out.push(P(box(x0 + gx * cs + 0.8, y0 + gy * cs + 0.8, cs - 1.6, cs - 1.6), 'none', 0, { fill: '#1C1B29' })); });
+      return out;
+    };
+    const gridDots = (x0, y0, u, cols, rows, color) => {
+      const out = [];
+      for (let gx = 0; gx < cols; gx++) for (let gy = 0; gy < rows; gy++) out.push(P(dot(x0 + gx * u, y0 + gy * u), color, 2.5));
+      return out;
+    };
+
+    const T = (text, ink) => ({ isTitle: true, text, ink });
+    const Lb = (text) => ({ isLabel: true, text });
+    const Sv = (h, bg, paths) => ({ isSvg: true, h, bg, paths });
+    const Sl = (text, pct, ink) => ({ isSlider: true, text, pct: pct + '%', ink });
+    const Bt = (items, ink) => ({ isButtons: true, ink, items: items.map((t, i) => ({ text: t, bg: i === 0 ? ink : 'transparent', fg: i === 0 ? '#FFFFFF' : ink })) });
+
+    const r1 = rng(11), r2 = rng(23), r3 = rng(37), r4 = rng(51);
+    const inkC = '#1C1B29', grnC = '#2F4A2A', ndlC = '#7A5A1E', fldC = '#3D3528';
+    const inkGrid = 'linear-gradient(rgba(28,27,41,0.08) 1px, transparent 1px) 0 0 / 12px 12px, linear-gradient(90deg, rgba(28,27,41,0.08) 1px, transparent 1px) 0 0 / 12px 12px, #FBF9F4';
+
+    const lr = rng(7);
+    const lset = (name, chars, fn, bg, labelInk, flag) => chars.map((ch) => ({ bg, labelInk, label: name + ' — ' + ch, paths: fn(ch, 35, 35, 30, lr, flag) }));
+    const lInkBg = 'linear-gradient(rgba(28,27,41,0.09) 1px, transparent 1px) 5px 5px / 30px 30px, linear-gradient(90deg, rgba(28,27,41,0.09) 1px, transparent 1px) 5px 5px / 30px 30px, #F7F4EC';
+    const lGrowBg = 'radial-gradient(circle, rgba(47,74,42,0.22) 1.5px, transparent 2px) 20px 20px / 30px 30px, #E9EDE0';
+    LETTER_SETS = [
+      lset('Fold', ['F', 'O', 'L', 'D', 'A'], fold, '#CFC6B6', '#151412'),
+      lset('Ink Type', ['I', 'N', 'K', 'T', 'Y'], ink, lInkBg, '#151412'),
+      lset('Grow', ['G', 'R', 'O', 'W', 'A'], grow, lGrowBg, '#151412', true),
+      lset('Noodle', ['N', 'O', 'O', 'D', 'L'], noodle, '#F2E6D0', '#151412', true)
+    ];
+    return [
+      [
+        { url: 'lijune-choi1.github.io/foldface', bg: '#F1ECE2', blocks: [T('Fold', fldC), Lb('Pleated-paper typeface generator'), Sv(120, '#D5CCBC', word(fold, 'FOLD', 22, 20, 12.5, 16))] },
+        { url: 'lijune-choi1.github.io/foldface', bg: '#F1ECE2', blocks: [Lb('Fold mechanics'), Sl('Stroke weight', 62, fldC), Sl('Pleat length', 40, fldC), Sl('Fold depth', 74, fldC), Sl('Light angle', 30, fldC), Lb('Stock & ink'), Bt(['crease lines', 'cast shadow', 'no caps'], fldC)] },
+        { url: 'lijune-choi1.github.io/foldface', bg: '#F1ECE2', blocks: [Sv(118, '#2B2620', word(fold, 'TYPE', 22, 18, 12.5, 16)), Bt(['Download PNG', 'Reshuffle'], fldC)] }
+      ],
+      [
+        { url: 'lijune-choi1.github.io/inktype', bg: '#FBF9F4', blocks: [Lb('Sketch pad — letter K'), Sv(118, inkGrid, cellLetter('K', 20, 6, 15).concat(ink('K', 150, 20, 13, r2))), Bt(['Save letter', 'Clear grid'], inkC)] },
+        { url: 'lijune-choi1.github.io/inktype', bg: '#FBF9F4', blocks: [Lb('Your ink alphabet'), Sv(64, '#FBF9F4', word((ch, x, y, u) => cellLetter(ch, x, y, u), 'INKTY', 8, 6, 7.5, 18)), Lb('Type it in ink'), Bt(['Render as ink', 'Reshuffle swirls'], inkC)] },
+        { url: 'lijune-choi1.github.io/inktype', bg: '#FBF9F4', blocks: [Sv(108, '#FFFFFF', word(ink, 'INK', 40, 12, 13, 20, r2)), Sl('Swirl amount', 68, inkC), Sl('Ink thickness', 45, inkC)] }
+      ],
+      [
+        { url: 'lijune-choi1.github.io/growtype', bg: '#EEF1E6', blocks: [Lb('Grid 5 × 7 · growing: A'), Sv(132, '#E3E8D8', gridDots(110, 12, 18, 5, 7, 'rgba(47,74,42,0.3)').concat(grow('A', 110, 12, 18, r3, false)))] },
+        { url: 'lijune-choi1.github.io/growtype', bg: '#EEF1E6', blocks: [Sv(118, '#E3E8D8', grow('A', 102, 10, 16, r3, true)), Lb('water 4 · fertilizer 7'), Bt(['give water', 'give fertilizer'], grnC)] },
+        { url: 'lijune-choi1.github.io/growtype', bg: '#EEF1E6', blocks: [Lb('Type'), Sv(106, '#F6F8F1', word(grow, 'GROW', 20, 16, 12, 18, r3, true)), Bt(['export as font (.ttf)', 'export SVG'], grnC)] }
+      ],
+      [
+        { url: 'lijune-choi1.github.io/noodles-', bg: '#F5ECDA', blocks: [T('Noodle Type Lab', ndlC), Sv(92, '#F2E3C6', gridDots(14, 12, 8, 30, 7, '#B89A6A').concat(word(noodle, 'NOODLE', 14, 12, 8, 8, r4, false))), Bt(['Boil it up', 'Sauce'], ndlC)] },
+        { url: 'lijune-choi1.github.io/noodles-', bg: '#F5ECDA', blocks: [Bt(['Type', 'Design letters'], ndlC), Sl('Gravity', 70, ndlC), Sl('Bounce', 35, ndlC), Sl('Slack', 55, ndlC), Lb('Word'), Sv(40, '#FFFFFF', [])] },
+        { url: 'lijune-choi1.github.io/noodles-', bg: '#F5ECDA', blocks: [Lb('Hand-pull mode — edit letter D'), Sv(120, '#F2E3C6', noodle('D', 108, 12, 16, r4, true)), Bt(['Export SVG', 'Jiggle everything'], ndlC)] }
+      ]
+    ];
+  
+}
+var SETS = buildSets();
+
+var TOOLS = [
+  { title:'Fold', url:'https://lijune-choi1.github.io/foldface/', exports:'Exports PNG', desc:'Each letter is a strip of paper pleated like a fan, with grain, creases and a cast shadow.' },
+  { title:'Ink Type', url:'https://lijune-choi1.github.io/inktype/', exports:'Exports SVG', desc:'Sketch letters on a grid, then type words that flow out as generative ink swirls.' },
+  { title:'Grow a Typeface', url:'https://lijune-choi1.github.io/growtype/', exports:'Exports TTF', desc:'Plot a letter, water and fertilize it, and watch it sprout into an installable font.' },
+  { title:'Noodle Type Lab', url:'https://lijune-choi1.github.io/noodles-/', exports:'Exports SVG', desc:'Words hang from a grid like dough, sagging and jiggling under their own weight.' }
+];
+
+function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function svg(w, h, paths, bg, cls){
+  return '<svg class="'+(cls||'')+'" viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'"'+(bg?' style="background:'+bg+'"':'')+' xmlns="http://www.w3.org/2000/svg" focusable="false">'+
+    paths.map(function(p){ return '<path d="'+p.d+'" style="fill:'+p.fill+';stroke:'+p.stroke+';stroke-width:'+p.width+';stroke-dasharray:'+p.dash+';stroke-linecap:'+p.cap+';stroke-linejoin:round;opacity:'+p.opacity+'"/>'; }).join('')+'</svg>';
+}
+function block(b){
+  if(b.isTitle) return '<div class="b-t" style="color:'+b.ink+'">'+esc(b.text)+'</div>';
+  if(b.isLabel) return '<div class="b-l">'+esc(b.text)+'</div>';
+  if(b.isSvg) return svg(276, b.h, b.paths, b.bg, 'b-svg');
+  if(b.isSlider) return '<div class="b-s"><span>'+esc(b.text)+'</span><span class="trk"><b style="width:'+b.pct+';background:'+b.ink+'"></b><em style="left:'+b.pct+';border-color:'+b.ink+'"></em></span></div>';
+  if(b.isButtons) return '<div class="b-b">'+b.items.map(function(it){ return '<span style="border-color:'+b.ink+';background:'+it.bg+';color:'+it.fg+'">'+esc(it.text)+'</span>'; }).join('')+'</div>';
+  return '';
+}
+function win(c){
+  return '<div class="pv"><div class="win" style="background:'+c.bg+'"><div class="bar"><i></i><i></i><i></i><span class="url">'+esc(c.url)+'</span></div><div class="wb">'+c.blocks.map(block).join('')+'</div></div></div>';
+}
+function letterCard(c){
+  return '<div class="lc" style="background:'+c.bg+'">'+svg(190, 250, c.paths)+'<span>'+esc(c.label)+'</span></div>';
+}
+
+/* build rows */
+var list = document.getElementById('list');
+list.innerHTML = TOOLS.map(function(t, i){
+  return '<a class="row" href="'+t.url+'" target="_blank" rel="noopener" data-i="'+i+'">'+
+    '<span class="num">'+String(i+1).padStart(2,'0')+'</span>'+
+    '<div class="info"><span class="title">'+esc(t.title)+'</span><span class="desc">'+esc(t.desc)+'</span><span class="meta">'+t.exports+' · Open tool ↗</span><span class="sr"> (opens in a new tab)</span></div>'+
+    '<div class="prevs" aria-hidden="true">'+SETS[i].map(win).join('')+'</div>'+
+    '<div class="strip" aria-hidden="true">'+LETTER_SETS[i].map(function(c){ return '<div class="mini">'+letterCard(c)+'</div>'; }).join('')+'</div>'+
+  '</a>';
+}).join('');
+
+/* scale preview windows to their slot */
+var pvs = list.querySelectorAll('.pv');
+function fit(){ pvs.forEach(function(p){ p.style.setProperty('--s', (p.clientWidth / 300).toFixed(4)); }); }
+if (window.ResizeObserver){ var ro = new ResizeObserver(fit); pvs.forEach(function(p){ ro.observe(p); }); }
+window.addEventListener('resize', fit); fit();
+
+/* fan */
+var SPREAD = 13;
+var fanEl = document.getElementById('fan'), cards = [];
+for (var j = 0; j < 5; j++){ var d = document.createElement('div'); d.className = 'card'; fanEl.appendChild(d); cards.push({ el:d, x:0, y:0 }); }
+var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var target = { x:-500, y:-500 }, active = -1, raf = null, placed = false;
+var rows = list.querySelectorAll('.row');
+
+function setActive(i){
+  if (i === active) return;
+  active = i;
+  rows.forEach(function(r, k){ r.classList.toggle('is-active', k === i); });
+  list.classList.toggle('has-active', i >= 0);
+  var on = i >= 0;
+  cards.forEach(function(c, j){
+    if (on) c.el.innerHTML = letterCard(LETTER_SETS[i][j]);
+    var lc = c.el.firstChild; if (!lc) return;
+    var k = j - 2;
+    lc.style.transitionDelay = on ? (Math.abs(k) * 50) + 'ms' : '0ms';
+    lc.style.transform = 'rotate(0deg) scale(0.6)';
+    if (on){ void lc.offsetWidth; lc.style.transform = 'rotate(' + (k * SPREAD) + 'deg) translateY(' + (Math.abs(k) * 6) + 'px)'; }
+  });
+  fanEl.classList.toggle('on', on);
+  if (on && !placed){ cards.forEach(function(c){ c.x = target.x; c.y = target.y; }); placed = true; }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+function tick(){
+  var moving = false;
+  cards.forEach(function(c, j){
+    var e = reduce ? 1 : 0.2 - j * 0.028;
+    c.x += (target.x - c.x) * e; c.y += (target.y - c.y) * e;
+    if (Math.abs(target.x - c.x) > 0.3 || Math.abs(target.y - c.y) > 0.3) moving = true;
+    c.el.style.transform = 'translate3d(' + c.x.toFixed(1) + 'px,' + c.y.toFixed(1) + 'px,0)';
+  });
+  raf = moving ? requestAnimationFrame(tick) : null;
+}
+document.addEventListener('pointermove', function(e){
+  if (e.pointerType !== 'mouse') return;
+  target.x = e.clientX; target.y = e.clientY;
+  if (!raf) raf = requestAnimationFrame(tick);
+}, { passive:true });
+rows.forEach(function(r, i){
+  r.addEventListener('pointerenter', function(e){ if (e.pointerType === 'mouse') setActive(i); });
+  r.addEventListener('focus', function(){
+    var b = r.getBoundingClientRect();
+    target.x = b.left + Math.min(b.width * 0.55, 700); target.y = b.top + b.height / 2;
+    placed = false; setActive(i);
+  });
+  r.addEventListener('blur', function(){ setActive(-1); });
+});
+list.addEventListener('pointerleave', function(){ setActive(-1); placed = false; });
+window.addEventListener('scroll', function(){
+  if (active < 0) return;
+  var el = document.elementFromPoint(target.x, target.y);
+  var r = el && el.closest ? el.closest('.row') : null;
+  setActive(r ? +r.getAttribute('data-i') : -1);
+}, { passive:true });
+})();
+</script>
+</body>
+</html>
